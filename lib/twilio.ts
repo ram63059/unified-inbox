@@ -48,3 +48,10 @@ export async function sendWhatsApp(to: string, body: string, mediaUrls?: string[
     return { success: false, error: err.message };
   }
 }
+
+// Verify Twilio webhook signatures for security
+export function verifyTwilioSignature(signature: string, url: string, params: never): boolean {
+  const validator = twilio.validateRequest;
+  return validator(authToken, signature, url, params);
+}
+    
