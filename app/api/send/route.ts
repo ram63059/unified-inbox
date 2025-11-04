@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { SendSMS, sendWhatsApp } from '@/lib/twilio';
+import { updateDailyAnalytics, updateConversationMetrics } from '@/lib/analytics';
 import { sendEmail } from '@/lib/email';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
@@ -117,6 +118,9 @@ export async function POST(request: Request) {
       where: { id: contactId },
       data: { updatedAt: new Date() },
     });
+
+    await updateDailyAnalytics(channel, 'OUTBOUND');
+    await updateConversationMetrics(contactId);
 
     return NextResponse.json({
       success: true,

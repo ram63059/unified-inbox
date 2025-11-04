@@ -11,7 +11,6 @@ async function main() {
     update: {},
     create: {
       email: 'demo@example.com',
-      password: '$2a$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu/1u', // "password123"
       name: 'Demo User',
       role: 'ADMIN',
     },

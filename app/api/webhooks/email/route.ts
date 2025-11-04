@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma';
+import { updateDailyAnalytics, updateConversationMetrics, calculateResponseTime } from '@/lib/analytics';
+
 import { NextResponse } from 'next/server';
 
 // POST /api/webhooks/email - Handle incoming emails (Resend webhook)
@@ -31,6 +33,7 @@ export async function POST(request: Request) {
           },
         });
       }
+      const messageTime = new Date(event.data.created_at);
 
       // Save email as message
       await prisma.message.create({
@@ -51,6 +54,11 @@ export async function POST(request: Request) {
         where: { id: contact.id },
         data: { updatedAt: new Date() },
       });
+
+      const responseTime = await calculateResponseTime(contact.id, messageTime);
+      await updateDailyAnalytics('EMAIL', 'INBOUND', responseTime);
+      await updateConversationMetrics(contact.id);
+
 
       return NextResponse.json({ received: true });
     }

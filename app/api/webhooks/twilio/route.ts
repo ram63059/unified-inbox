@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { updateDailyAnalytics, updateConversationMetrics, calculateResponseTime } from '@/lib/analytics';
 
 // POST /api/webhooks/twilio - Handle incoming SMS/WhatsApp
 export async function POST(request: Request) {
@@ -44,6 +45,9 @@ export async function POST(request: Request) {
       }
     }
 
+        const messageTime = new Date();
+
+
     // Save message to database
     await prisma.message.create({
       data: {
@@ -63,6 +67,10 @@ export async function POST(request: Request) {
       where: { id: contact.id },
       data: { updatedAt: new Date() },
     });
+
+   const responseTime = await calculateResponseTime(contact.id, messageTime);
+    await updateDailyAnalytics(channel, 'INBOUND', responseTime);
+    await updateConversationMetrics(contact.id);
 
     // Respond with empty TwiML (Twilio requires XML response)
     return new Response(

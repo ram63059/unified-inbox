@@ -18,17 +18,65 @@ datasource db {
 //user accounts
 
 model User {
-  id        String  @id @default(cuid())
-  email     String @unique
-  password  String 
-  name      String?
-  role      Role    @default(EDITOR)
-  createdAt DateTime  @default(now())
-
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  name          String?
+  image         String?
+  role          Role      @default(EDITOR)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
 
   messages  Message[]
   notes     Note[]
+  accounts  Account[]
+  sessions  Session[]
+}
 
+// Better-auth required tables
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
 }
 
 
@@ -49,6 +97,8 @@ model  Contact {
 
   messages  Message[]
   notes     Note[]
+  conversationMetrics   ConversationMetrics[]
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -131,4 +181,53 @@ model Note {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+}
+
+model DailyAnalytics {
+  id                    String   @id @default(cuid())
+  date                  DateTime @default(now())
+  channel               Channel
+  totalMessages         Int      @default(0)
+  inboundMessages       Int      @default(0)
+  outboundMessages      Int      @default(0)
+  avgResponseTime       Float?
+  totalResponseTime     Float?
+  responseCount         Int      @default(0)
+  conversationsStarted  Int      @default(0)
+  conversationsResolved Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@unique([date, channel])
+  @@index([date])
+}
+
+model ConversationMetrics {
+  id               String              @id @default(cuid())
+  contactId        String
+  contact          Contact             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  firstMessageAt   DateTime
+  lastMessageAt    DateTime
+  firstResponseAt  DateTime?
+  responseTime     Float?
+  totalMessages    Int                 @default(0)
+  inboundCount     Int                 @default(0)
+  outboundCount    Int                 @default(0)
+  status           ConversationStatus  @default(ACTIVE)
+  leadScore        Int?
+  convertedAt      DateTime?
+  conversionValue  Float?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  
+  @@unique([contactId])
+  @@index([status])
+  @@index([firstMessageAt])
+}
+
+enum ConversationStatus {
+  ACTIVE
+  RESOLVED
+  ARCHIVED
+  CONVERTED
 }
